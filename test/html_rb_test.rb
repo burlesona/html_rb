@@ -143,4 +143,16 @@ describe HtmlRB do
     end
     assert_equal %Q|<option value="test">Test</option>|, out
   end
+
+  it "should be composable" do
+    foo = html do
+      p "This is a foo"
+    end
+    foobaz = html do
+      compose foo
+      p "This is a baz"
+    end
+
+    assert_equal %Q|<p>This is a foo</p><p>This is a baz</p>|, foobaz
+  end
 end

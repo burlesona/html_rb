@@ -29,6 +29,10 @@ module HtmlRB
       end
     end
 
+    def compose(html_component)
+      @strings << html_component
+    end
+
     # Define all the tag methods
     (HtmlRB::STD_ELEMENTS + HtmlRB::VOID_ELEMENTS).each do |el|
       define_method(el) do |content=nil,**attrs,&block|

@@ -118,6 +118,26 @@ end
 <a href="google.com">Search!</a>
 ```
 
+But ~~does it blend~~ is it composable? Yes.
+
+```ruby
+foo = html do
+  p "The foo"
+end
+
+html do
+  compose foo
+  p "The baz"
+end
+```
+
+...generates:
+
+```html
+<p>The foo</p>
+<p>The baz</p>
+```
+
 Neat, huh?
 
 It'll do all the cool stuff like making self-closing tags and boolean attributes correctly too:
