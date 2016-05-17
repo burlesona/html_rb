@@ -149,7 +149,7 @@ describe HtmlRB do
       p "This is a foo"
     end
     foobaz = html do
-      compose foo
+      raw foo
       p "This is a baz"
     end
 

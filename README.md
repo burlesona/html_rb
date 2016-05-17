@@ -126,7 +126,7 @@ foo = html do
 end
 
 html do
-  compose foo
+  raw foo
   p "The baz"
 end
 ```

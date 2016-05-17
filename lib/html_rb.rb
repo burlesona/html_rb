@@ -29,7 +29,7 @@ module HtmlRB
       end
     end
 
-    def compose(html_component)
+    def raw(html_component)
       @strings << html_component
     end
 
