@@ -1,3 +1,5 @@
+require 'set'
+
 module HtmlRB
   STD_ELEMENTS=[
     :a,
@@ -107,7 +109,7 @@ module HtmlRB
     :source,
     :track,
     :wbr,
-    ].to_set.freeze
+  ].to_set.freeze
 
   BOOL_ATTRS=[
     :allowfullscreen,
