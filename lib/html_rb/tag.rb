@@ -2,42 +2,54 @@ module HtmlRB
   class Tag
     def initialize(name=nil,content=nil,**attrs,&block)
       @strings = []
-      build name, content, **attrs, &block
+      tag name, content, **attrs, &block
     end
 
     def to_s
       @strings.join
     end
 
+    def self.register(tag_name, void: false)
+      method_name = tag_name.to_s.downcase.gsub('-','_') # Rubify the tag name.
+      define_method(method_name) do |content=nil,**attrs,&block|
+        tag tag_name, content, _void: void, **attrs, &block
+      end
+    end
+
+    def self.unregister(tag_name)
+      method_name = tag_name.to_s.downcase.gsub('-','_') # Rubify the tag name.
+      remove_method method_name
+    end
+
+    # Define all the tag methods
+    HtmlRB::STD_ELEMENTS.each {|tag_name| register tag_name }
+    HtmlRB::VOID_ELEMENTS.each {|tag_name| register tag_name, void: true }
+
     private
-    def build(name=nil,content=nil,**attrs,&block)
-      void = HtmlRB::VOID_ELEMENTS.include?(name)
+
+    def tag(name=nil, content=nil, _void: false, **attrs, &block)
+      void = _void
       raise HtmlRB::Error, "May not provide both content and block" if content && block_given?
       raise HtmlRB::Error, "Void elements cannot enclose content" if void && (content || block_given?)
 
       @strings << "<#{[name,attribute_string(attrs)].join(" ").strip}>" if name
-      unless void
-        @strings << content if content
-        instance_eval(&block) if block_given?
-        @strings << "</#{name}>" if name
-      end
-    end
+      
+      return if void
 
-    def raw(html_component)
-      @strings << html_component
-    end
-
-    # Define all the tag methods
-    (HtmlRB::STD_ELEMENTS + HtmlRB::VOID_ELEMENTS).each do |el|
-      define_method(el) do |content=nil,**attrs,&block|
-        build el, content, **attrs, &block
-      end
+      @strings << content if content
+      instance_eval(&block) if block_given?
+      @strings << "</#{name}>" if name
     end
 
     # Used for Text Nodes
     def text(content)
-      build nil, content
+      tag nil, content
     end
+
+    # Really, text is just appending a string, so we can append anything.
+    # But saying `text` before some block of HTML stored in a variable feels
+    # wrong, so we'll add an alias `render` which feels less strange.
+    alias render text
 
     # ATTRIBUTE HANDLING
     def attribute_string(hash={})
@@ -56,13 +68,9 @@ module HtmlRB
     end
 
     def attribute_key(k)
-      str = k.to_s
-      if str.start_with? "!"
-        str.slice!(0)
-      else
-        str.gsub!("_","-")
-      end
-      str
+      return k if k.is_a?(String)
+      
+      k.to_s.gsub("_","-")
     end
   end
 end

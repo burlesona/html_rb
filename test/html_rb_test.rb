@@ -30,20 +30,6 @@ describe HtmlRB do
     assert_equal "<!DOCTYPE html><html></html>", html(document: true)
   end
 
-  it "should generate HTML tags with no !DOCTYPE" do
-    assert_equal "<html></html>", html(document: true, doctype: false)
-  end
-
-  it "should generate HTML tags with custom !DOCTYPE" do
-    d = %Q|HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd"|
-    correct = "<!DOCTYPE #{d}><html></html>"
-    assert_equal correct , html(document: true, doctype: d)
-  end
-
-  it "should generate HTML tags with something inside via argument" do
-    assert_equal "<html>something</html>", html("something", document: true, doctype:false)
-  end
-
   it "should generate HTML tags with something inside via block" do
     assert_equal "<!DOCTYPE html><html>something</html>", html(document: true){ text "something" }
   end
@@ -91,11 +77,11 @@ describe HtmlRB do
     assert_equal %Q|<p data-foo="bar"></p>|, out
   end
 
-  it "should let you do weird things if you start the key with a bang" do
+  it "should let you do custom things if you use string keys" do
     out = html do
-      p :"!someWierd_stuffs" => "foo"
+      p "_my_Attribute" => "foo"
     end
-    assert_equal %Q|<p someWierd_stuffs="foo"></p>|, out
+    assert_equal %Q|<p _my_Attribute="foo"></p>|, out
   end
 
   it "should generate html tags with content" do
@@ -114,8 +100,8 @@ describe HtmlRB do
     assert_equal %Q|<p class="super"><span>Hello!</span></p>|, out
   end
 
-  it "should do everything using the HTML.markup method instead" do
-    out = HtmlRB.markup do
+  it "should do everything using the HtmlRB.html method instead" do
+    out = HtmlRB.html do
       p class: "super" do
         span "Hello!"
       end
@@ -144,15 +130,90 @@ describe HtmlRB do
     assert_equal %Q|<option value="test">Test</option>|, out
   end
 
-  it "should be composable" do
+  it "should accept strings" do
     foo = html do
       p "This is a foo"
     end
     foobaz = html do
-      raw foo
+      text foo
       p "This is a baz"
     end
 
     assert_equal %Q|<p>This is a foo</p><p>This is a baz</p>|, foobaz
+  end
+
+  it "should accept strings with `render` too" do
+    foo = html do
+      p "This is a foo"
+    end
+    foobaz = html do
+      render foo
+      p "This is a baz"
+    end
+
+    assert_equal %Q|<p>This is a foo</p><p>This is a baz</p>|, foobaz
+  end
+
+  it "should accept custom elements using #tag" do
+    out = html do
+      tag 'my-element', class: 'test' do
+        p 'Test content'
+      end
+    end
+    assert_equal %Q|<my-element class="test"><p>Test content</p></my-element>|, out
+  end
+
+  it "should allow registering a new standard element and using it in the DSL" do
+    t = HtmlRB::Tag.new
+    refute t.respond_to?(:my_element)
+
+    HtmlRB::Tag.register('my-element')
+    out = html do
+      my_element class: 'test' do
+        p 'Test content'
+      end
+    end
+    assert_equal %Q|<my-element class="test"><p>Test content</p></my-element>|, out
+
+    HtmlRB::Tag.remove_method :my_element
+  end
+
+  it "should allow registering a new void element and using it in the DSL" do
+    t = HtmlRB::Tag.new
+    refute t.respond_to?(:my_element)
+
+    HtmlRB::Tag.register('my-element', void: true)
+    out = html do
+      my_element class: 'test'
+      p 'Test content'
+    end
+    assert_equal %Q|<my-element class="test"><p>Test content</p>|, out
+
+    HtmlRB::Tag.remove_method :my_element
+  end
+
+  it "should work with ruby logic" do
+    user_name = nil
+    logged_in = false
+    links = %w(home login signup)
+
+    out = html do
+      if logged_in
+        p "Hello #{user_name}"
+      else
+        p "Lost? Try one of these links:"
+        ol do
+          links.each do |link|
+            li do
+              a link.upcase, href: "/#{link}"
+            end
+          end
+        end
+      end
+    end
+
+    correct = %Q|<p>Lost? Try one of these links:</p><ol><li><a href="/home">HOME</a></li><li><a href="/login">LOGIN</a></li><li><a href="/signup">SIGNUP</a></li></ol>|
+
+    assert_equal correct, out
   end
 end
